@@ -1,0 +1,29 @@
+# Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
+
+client_id = "392a6269389c2ee1757d6c3e05347166"
+name = "clance-import-export"
+handle = "clance-import-export"
+application_url = "https://institutes-silly-disk-woods.trycloudflare.com"
+embedded = true
+
+[build]
+automatically_update_urls_on_dev = true
+dev_store_url = "tetbirttest.myshopify.com"
+include_config_on_deploy = true
+
+[access_scopes]
+# Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
+scopes = "read_assigned_fulfillment_orders,read_fulfillments,read_merchant_managed_fulfillment_orders,read_metaobjects,read_orders,read_products,read_third_party_fulfillment_orders,write_assigned_fulfillment_orders,write_fulfillments,write_merchant_managed_fulfillment_orders,write_metaobjects,write_orders,write_third_party_fulfillment_orders"
+
+[auth]
+redirect_urls = [
+  "https://institutes-silly-disk-woods.trycloudflare.com/auth/callback",
+  "https://institutes-silly-disk-woods.trycloudflare.com/auth/shopify/callback",
+  "https://institutes-silly-disk-woods.trycloudflare.com/api/auth/callback"
+]
+
+[webhooks]
+api_version = "2024-10"
+
+[pos]
+embedded = false
