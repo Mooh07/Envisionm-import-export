@@ -15,7 +15,7 @@ coverage
 logs
 *.log
 
-web/assets/*.csv
+# web/assets/*.csv
 
 # ngrok tunnel file
 config/tunnel.pid
