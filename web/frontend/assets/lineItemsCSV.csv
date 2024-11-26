@@ -1,2 +1,3 @@
-Ord#,Quantity,ProductID
-361411121,1,888392583123
+Ord#,Quantity,UPC,POWER,BC,DIAMETER,CYL,AXIS,COLOR,SAMPLE,ADD,Patient
+1007,3,888290272853,,8.6,14.5,-1.75,020,,,,Mohamed Hassene Tetbirt
+1007,2,888290273782,,8.6,14.5,-1.75,170,,,,Mohamed Hassene Tetbirt

@@ -11,20 +11,7 @@ export default function HomePage() {
     <Page narrowWidth>
       <TitleBar title={t("HomePage.title")} />
       <Layout>
-        <Layout.Section>
-          <Card sectioned>
-            <a href={`/sunGlassesInvetory.csv`} download="sample.csv">
-              Click to download
-            </a>
-            <BlockStack
-              spacing="extraTight"
-              distribution="trailing"
-              alignment="center"
-            >
-              Block stack
-            </BlockStack>
-          </Card>
-        </Layout.Section>
+        <Layout.Section></Layout.Section>
         <Layout.Section>
           <ProductsCard />
         </Layout.Section>

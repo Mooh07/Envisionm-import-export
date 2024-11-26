@@ -3,7 +3,7 @@
 client_id = "fdd0cc8068afd5955a747a4867daf923"
 name = "envisionm-import-export"
 handle = "envisionm-import-export"
-application_url = "https://finnish-normal-promoted-claimed.trycloudflare.com"
+application_url = "https://discussed-inflation-chronicles-comparative.trycloudflare.com"
 embedded = true
 
 [build]
@@ -13,13 +13,13 @@ include_config_on_deploy = true
 
 [access_scopes]
 # Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
-scopes = "read_assigned_fulfillment_orders,read_fulfillments,read_merchant_managed_fulfillment_orders,read_metaobjects,read_orders,read_products,read_third_party_fulfillment_orders,write_assigned_fulfillment_orders,write_fulfillments,write_merchant_managed_fulfillment_orders,write_metaobjects,write_orders,write_third_party_fulfillment_orders"
+scopes = "read_assigned_fulfillment_orders,read_customers,read_fulfillments,read_merchant_managed_fulfillment_orders,read_metaobjects,read_orders,read_products,read_third_party_fulfillment_orders,write_assigned_fulfillment_orders,write_customers,write_fulfillments,write_merchant_managed_fulfillment_orders,write_metaobjects,write_orders,write_third_party_fulfillment_orders"
 
 [auth]
 redirect_urls = [
-  "https://finnish-normal-promoted-claimed.trycloudflare.com/auth/callback",
-  "https://finnish-normal-promoted-claimed.trycloudflare.com/auth/shopify/callback",
-  "https://finnish-normal-promoted-claimed.trycloudflare.com/api/auth/callback"
+  "https://discussed-inflation-chronicles-comparative.trycloudflare.com/auth/callback",
+  "https://discussed-inflation-chronicles-comparative.trycloudflare.com/auth/shopify/callback",
+  "https://discussed-inflation-chronicles-comparative.trycloudflare.com/api/auth/callback"
 ]
 
 [webhooks]

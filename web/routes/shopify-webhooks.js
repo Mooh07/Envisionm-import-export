@@ -43,7 +43,6 @@ export default (app) => {
     "/api/webhooks/orderCreated",
     isValidShopifyWebHook,
     async (req, res) => {
-      return;
       console.log(req.body);
       let orderData = {
         shipping: {

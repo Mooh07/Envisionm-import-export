@@ -239,7 +239,7 @@ function IndexTableWithViewsSearchFilterSorting({
   };
   const promotedBulkActions = [
     {
-      content: "Download corresponding CSVs",
+      content: "Generate CSVs",
       onAction: async () => {
         shopify.toast.show(
           "Please wait a couple of seconds, the files are being generated, don't leave the page",
