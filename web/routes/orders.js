@@ -240,7 +240,7 @@ const generateCSV = async (orders, graphQlClient) => {
             State: response.data[key].shippingAddress.provinceCode,
             "Ship Method": response.data[key]?.shippingLine?.code,
             Store_ID: "envisionm.com",
-            Store_Link: "support@envisionm.com",
+            Store_Link: "Lenses@envisionoptical.com",
           };
         } else {
           finalOrderCSVobj = {
@@ -250,7 +250,7 @@ const generateCSV = async (orders, graphQlClient) => {
             ...locationShippingInfo[response.data[key].deliveryLocation.value],
             "Ship Method": "",
             Store_ID: "envisionm.com",
-            Store_Link: "support@envisionm.com",
+            Store_Link: "Lenses@envisionoptical.com",
           };
         }
         finalCSVOrderArray.push(finalOrderCSVobj);
