@@ -1,5 +1,7 @@
 import { createObjectCsvWriter } from "csv-writer";
 import { ordersDB } from "../database/orders.js";
+import fs from "fs";
+import csv from "csv-parser";
 import shopify from "../shopify.js";
 export const listOrders = async (_req, res) => {
   const {
@@ -12,7 +14,6 @@ export const listOrders = async (_req, res) => {
     name,
     fulfillmentStatus,
   } = _req.body;
-  console.log(_req.body);
   let { data, hasMoreItems } = await ordersDB.listFilteredCustomersAndOrders({
     // @ts-ignore
     currentPage: parseInt(currentPage),
@@ -30,7 +31,10 @@ export const listOrders = async (_req, res) => {
 let csvWriterOrderShippingWriterGenerator = () => {
   return createObjectCsvWriter({
     append: false,
-    path: "./frontend/assets/ordersGenerator.csv",
+    path:
+      process.env.NODE_ENV == "production"
+        ? "./frontend/dist/ordersShippment.csv"
+        : "./frontend/assets/ordersShippment.csv",
     header: [
       {
         id: "Ord#",
@@ -59,15 +63,52 @@ let csvWriterOrderShippingWriterGenerator = () => {
 let csvWriterLineItemsCSV = () => {
   return createObjectCsvWriter({
     append: false,
-    path: "./frontend/assets/lineItemsCSV.csv",
+    path:
+      process.env.NODE_ENV == "production"
+        ? "./frontend/dist/lineItemsCSV.csv"
+        : "./frontend/assets/lineItemsCSV.csv",
     header: [
       {
         id: "Ord#",
         title: "Ord#",
       },
-      { id: "quantity", title: "Quantity" },
-      { id: "ProductID", title: "ProductID" },
+      { id: "Quantity", title: "Quantity" },
+      { id: "UPC", title: "UPC" },
+      { id: "POWER", title: "POWER" },
+      { id: "BC", title: "BC" },
+      { id: "DIAMETER", title: "DIAMETER" },
+      { id: "CYL", title: "CYL" },
+      { id: "AXIS", title: "AXIS" },
+      { id: "COLOR", title: "COLOR" },
+      { id: "SAMPLE", title: "SAMPLE" },
+      { id: "ADD", title: "ADD" },
+      { id: "Patient", title: "Patient" },
     ],
+  });
+};
+const readSkusCsvFile = (fileToRead) => {
+  return new Promise((resolve, reject) => {
+    const arrayOfProducts = [];
+    let objOfProduct = {};
+    fs.createReadStream(fileToRead)
+      .pipe(csv())
+      .on("data", (row) => {
+        arrayOfProducts.push(row);
+        if (!objOfProduct[row["product_name"]]) {
+          objOfProduct[row["product_name"]] = {};
+        }
+        objOfProduct[row["product_name"]][row["upc_sku"]] = row;
+      })
+      .on("end", () => {
+        console.log(arrayOfProducts.length);
+        console.log(Object.keys(objOfProduct).length);
+        console.log(`Done reading ${fileToRead}`);
+        resolve(objOfProduct);
+      })
+      .on("error", (error) => {
+        console.error(`Error reading CSV file: ${error.message}`);
+        reject(error); // Reject the promise with the error
+      });
   });
 };
 const getOrdersQueryGenerator = (orders) => {
@@ -81,6 +122,13 @@ const getOrdersQueryGenerator = (orders) => {
               source
               code
               id
+          }
+          tags
+          deliveryLocation: metafield(namespace: "custom", key:"delivery_location"){
+            value
+          }
+          isTrial: metafield(namespace: "custom", key:"is_this_trial"){
+            value
           }
           fulfillmentOrders (first:50) {
               edges {
@@ -113,6 +161,10 @@ const getOrdersQueryGenerator = (orders) => {
               nodes {
                   sku
                   quantity
+                  product{
+                    title
+                    id
+                  }
               }
           }
         }
@@ -121,11 +173,38 @@ const getOrdersQueryGenerator = (orders) => {
   getOrderQuery += `}`;
   return getOrderQuery;
 };
+const locationShippingInfo = {
+  Monroe: {
+    Address1: "1 Preshburg Blvd",
+    City: "Kiryas Joel",
+    State: "NY",
+    Zip: "10950",
+  },
+  Monsey: {
+    Address1: "75 NY-59",
+    City: "monsey",
+    State: "NY",
+    Zip: "10952",
+  },
+  Flushing: {
+    Address1: "579 Flushing Ave",
+    City: "Brooklyn",
+    State: "NY",
+    Zip: "11205",
+  },
+  Wallabout: {
+    Address1: "271 Wallabout St",
+    City: "Brooklyn",
+    State: "NY",
+    Zip: "11206",
+  },
+};
 const generateCSV = async (orders, graphQlClient) => {
   const BATCH_SIZE = 100;
   let finalCSVOrderArray = [];
   let finalCSVLineItemArray = [];
-
+  let skus = await readSkusCsvFile("./assets/Result_64.csv");
+  // console.log(skus);
   for (let i = 0; i < orders.length; i += BATCH_SIZE) {
     const currentBatch = orders.slice(i, i + BATCH_SIZE);
     const getOrdersQuery = getOrdersQueryGenerator(currentBatch);
@@ -134,24 +213,63 @@ const generateCSV = async (orders, graphQlClient) => {
       //   console.log(`Batch ${i / BATCH_SIZE + 1} response:`, response);
       Object.keys(response.data).forEach((key) => {
         // if (!response.data[key].fulfillable) return;
-        finalCSVOrderArray.push({
-          "Ord#": response.data[key].name.replace("#", ""),
-          Ship_To_Name: response.data[key].shippingAddress.name,
-          Address1: response.data[key].shippingAddress.address1,
-          Address2: response.data[key].shippingAddress.address1
-            ? response.data[key].shippingAddress.address1
-            : "",
-          City: response.data[key].shippingAddress.city,
-          State: response.data[key].shippingAddress.provinceCode,
-          "Ship Method": response.data[key]?.shippingLine?.code,
-          Store_ID: "clance.com",
-          Store_Link: "support@clance.com",
-        });
-        response.data[key].lineItems.nodes.forEach((item) => {
+        console.log(response.data[key].lineItems.nodes);
+        let finalOrderCSVobj = {};
+        if (response.data[key].deliveryLocation.value == "Shipping") {
+          finalOrderCSVobj = {
+            "Ord#": response.data[key].name.replace("#", ""),
+            Ship_To_Name: response.data[key].shippingAddress.name,
+            Address1: response.data[key].shippingAddress.address1,
+            Address2: response.data[key].shippingAddress.address1
+              ? response.data[key].shippingAddress.address1
+              : "",
+            City: response.data[key].shippingAddress.city,
+            State: response.data[key].shippingAddress.provinceCode,
+            "Ship Method": response.data[key]?.shippingLine?.code,
+            Store_ID: "envisionm.com",
+            Store_Link: "support@envisionm.com",
+          };
+        } else {
+          finalOrderCSVobj = {
+            "Ord#": response.data[key].name.replace("#", ""),
+            Ship_To_Name: response.data[key].deliveryLocation.value,
+            Address2: "",
+            ...locationShippingInfo[response.data[key].deliveryLocation.value],
+            "Ship Method": "",
+            Store_ID: "envisionm.com",
+            Store_Link: "support@envisionm.com",
+          };
+        }
+        finalCSVOrderArray.push(finalOrderCSVobj);
+        response.data[key].tags.forEach((tag) => {
+          if (!tag.includes("right eye") && !tag.includes("left eye")) return;
+          let [product_id, sku, eye, quantity] = tag.split(":");
+          console.log("sku: ", sku);
+          let correspondingProduct = response.data[key].lineItems.nodes
+            .map((lineItem) => lineItem.product)
+            .filter((product) => {
+              let ID = product.id.replace("gid://shopify/Product/", "");
+              return ID == product_id;
+            })[0];
+          if (!correspondingProduct) {
+            // TODO: handle when product doesn't exist
+            return;
+          }
+
+          console.log(skus[correspondingProduct.title][sku]);
+          // console.log(response.data[key].lineItems.nodes);
           finalCSVLineItemArray.push({
             "Ord#": response.data[key].name.replace("#", ""),
-            quantity: item.quantity,
-            ProductID: item.sku,
+            Quantity: quantity,
+            UPC: sku,
+            Description: eye == "left eye" ? "Right Eye (OD)" : "Left Eye (OD)",
+            power: skus[correspondingProduct.title][sku].power,
+            BC: skus[correspondingProduct.title][sku].BC,
+            DIAMETER: skus[correspondingProduct.title][sku].diameter,
+            CYL: skus[correspondingProduct.title][sku].Cylinder,
+            AXIS: skus[correspondingProduct.title][sku].Axis,
+            ADD: skus[correspondingProduct.title][sku].ADD,
+            Patient: response.data[key].shippingAddress.name,
           });
         });
       });
@@ -160,18 +278,20 @@ const generateCSV = async (orders, graphQlClient) => {
       console.error(`Error in batch ${i / BATCH_SIZE + 1}:`, error);
     }
   }
+  // console.log(finalCSVOrderArray);
   //   console.log(finalCsvArray);
-  csvWriterOrderShippingWriterGenerator()
-    .writeRecords(finalCSVOrderArray)
-    .then(() => {
-      console.log("done writing order csv");
-    });
-  csvWriterLineItemsCSV()
-    .writeRecords(finalCSVLineItemArray)
-    .then(() => {
-      console.log("done writing line items csv");
-    });
+  // csvWriterOrderShippingWriterGenerator()
+  //   .writeRecords(finalCSVOrderArray)
+  //   .then(() => {
+  //     console.log("done writing order csv");
+  //   });
+  // csvWriterLineItemsCSV()
+  //   .writeRecords(finalCSVLineItemArray)
+  //   .then(() => {
+  //     console.log("done writing line items csv");
+  //   });
 };
+
 export const queryProductsAndGenerateCSV = async (_req, res) => {
   const {
     ordersNumbersToBeFiltered,

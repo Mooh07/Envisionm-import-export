@@ -5,7 +5,7 @@ import crypto from "crypto";
 import { ordersDB } from "../database/orders.js";
 const SHARED_KEY_FOR_HOOKS =
   process.env.SHARED_KEY_FOR_HOOKS ||
-  "bcc788287afc6a7e2576e98483010af5c759916df9b670efc974a4a086c625a9";
+  "ceb4d9a203e649b6303197931afa8869c5d10b40876615d3994c858032343f87";
 dotenv.config();
 const validateHmac = (hmac, body, key) => {
   const safeCompare = (hmac, queryStr, key) => {
@@ -43,6 +43,8 @@ export default (app) => {
     "/api/webhooks/orderCreated",
     isValidShopifyWebHook,
     async (req, res) => {
+      return;
+      console.log(req.body);
       let orderData = {
         shipping: {
           full_name: req.body.shipping_address.first_name,

@@ -19,13 +19,16 @@ logs
 config/tunnel.pid
 
 # vite build output
-dist/
+dist/assets
+dist/index.html
+
 
 # extensions build output
 extensions/*/build
 
 # Node library SQLite database
 web/database.sqlite
+web/database/*.sqlite
 
 # Ignore shopify files created during app dev
 .shopify/*

@@ -1,6 +1,5 @@
 // @ts-check
-import { ordersDB } from "./database/orders.js";
-ordersDB.init(false).then(async () => {
+ordersDB.init(process.env.NODE_ENV != "production").then(async () => {
   return;
   await ordersDB.createCustomer({
     customer_email: "nvm2k213@gmail.com",
@@ -37,6 +36,9 @@ ordersDB.init(false).then(async () => {
   await ordersDB.listCustomersAndTheirOrders();
   return;
 });
+import * as dotenv from "dotenv";
+dotenv.config();
+import { ordersDB } from "./database/orders.js";
 import { join } from "path";
 import { readFileSync } from "fs";
 import express from "express";
@@ -61,8 +63,10 @@ const STATIC_PATH =
     ? `${process.cwd()}/frontend/dist`
     : `${process.cwd()}/frontend/`;
 
+console.log(ordersDB.db);
 const app = express();
-
+// cors()
+// app.use(cors());
 // Set up Shopify authentication and webhook handling
 app.get(shopify.config.auth.path, shopify.auth.begin());
 app.get(
@@ -77,9 +81,19 @@ app.post(
 
 shopifyWebhooks(app);
 
+const addSessionShopToReqParams = async (req, res, next) => {
+  const shop = "377a43-4.myshopify.com";
+  if (shop && !req.query.shop) {
+    req.query.shop = shop;
+  }
+  return next();
+};
 // If you are adding routes outside of the /api path, remember to
 // also add a proxy rule for them in web/frontend/vite.config.js
 app.use("/api/*", shopify.validateAuthenticatedSession());
+
+// app.use("/*", addSessionShopToReqParams);
+
 app.use(express.json());
 
 app.post("/api/orders/all", listOrders);
@@ -117,17 +131,32 @@ app.post("/api/products", async (_req, res) => {
 
 app.use(shopify.cspHeaders());
 app.use(serveStatic(STATIC_PATH, { index: false }));
-
-// @ts-ignore
-app.use("/*", shopify.ensureInstalledOnShop(), async (_req, res, _next) => {
-  return res
-    .status(200)
-    .set("Content-Type", "text/html")
-    .send(
-      readFileSync(join(STATIC_PATH, "index.html"))
-        .toString()
-        .replace("%VITE_SHOPIFY_API_KEY%", process.env.SHOPIFY_API_KEY || "")
-    );
-});
+console.log(join(STATIC_PATH, "index.html"));
+app.use(
+  "/*",
+  (req, res, next) => {
+    // console.log("before installed on shop:");
+    // console.log(req.query);
+    next();
+  },
+  shopify.ensureInstalledOnShop(),
+  async (_req, res, _next) => {
+    try {
+      res
+        .status(200)
+        .set("Content-Type", "text/html")
+        .send(
+          readFileSync(join(STATIC_PATH, "index.html"))
+            .toString()
+            .replace(
+              "%VITE_SHOPIFY_API_KEY%",
+              process.env.SHOPIFY_API_KEY || ""
+            )
+        );
+    } catch (error) {
+      // _next(error); // Pass errors to Express's error-handling middleware.
+    }
+  }
+);
 
 app.listen(PORT);

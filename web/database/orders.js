@@ -191,7 +191,6 @@ export const ordersDB = {
       ORDER BY o.created_at DESC
       ${pageSql}
     `;
-
     try {
       const result = await this.__query(query, params);
       const hasMoreItems = result.length > maxPerPage;
