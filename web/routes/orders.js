@@ -323,18 +323,17 @@ const generateCSV = async (orders, graphQlClient) => {
       console.error(`Error in batch ${i / BATCH_SIZE + 1}:`, error);
     }
   }
-  console.log(finalCSVOrderArray);
-  console.log(finalCSVLineItemArray);
-  // csvWriterOrderShippingWriterGenerator()
-  //   .writeRecords(finalCSVOrderArray)
-  //   .then(() => {
-  //     console.log("done writing order csv");
-  //   });
-  // csvWriterLineItemsCSV()
-  //   .writeRecords(finalCSVLineItemArray)
-  //   .then(() => {
-  //     console.log("done writing line items csv");
-  //   });
+
+  csvWriterOrderShippingWriterGenerator()
+    .writeRecords(finalCSVOrderArray)
+    .then(() => {
+      console.log("done writing order csv");
+    });
+  csvWriterLineItemsCSV()
+    .writeRecords(finalCSVLineItemArray)
+    .then(() => {
+      console.log("done writing line items csv");
+    });
 };
 
 export const queryProductsAndGenerateCSV = async (_req, res) => {
