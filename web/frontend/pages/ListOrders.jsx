@@ -258,6 +258,10 @@ function IndexTableWithViewsSearchFilterSorting({
               "Content-Type": "application/json",
             },
           });
+          shopify.toast.show(
+            "Finished generating files, please click repsective buttons to download them",
+            { duration: 1000 * 5 }
+          );
         } catch (error) {}
       },
     },

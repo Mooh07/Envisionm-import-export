@@ -225,8 +225,7 @@ const generateCSV = async (orders, graphQlClient) => {
       const response = await graphQlClient.request(getOrdersQuery);
       //   console.log(`Batch ${i / BATCH_SIZE + 1} response:`, response);
       Object.keys(response.data).forEach(async (key) => {
-        // if (!response.data[key].fulfillable) return;
-
+        if (!response.data[key].fulfillable) return;
         let finalOrderCSVobj = {};
         if (response.data[key].deliveryLocation.value == "Shipping") {
           finalOrderCSVobj = {
