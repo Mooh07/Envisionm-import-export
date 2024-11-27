@@ -1,5 +1,5 @@
 // @ts-check
-ordersDB.init(true).then(async () => {
+ordersDB.init(false).then(async () => {
   return;
   await ordersDB.createCustomer({
     customer_email: "nvm2k213@gmail.com",
