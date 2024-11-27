@@ -1,5 +1,5 @@
 // @ts-check
-ordersDB.init(false).then(async () => {
+ordersDB.init(process.env.NODE_ENV != "production").then(async () => {
   return;
   await ordersDB.createCustomer({
     customer_email: "nvm2k213@gmail.com",
