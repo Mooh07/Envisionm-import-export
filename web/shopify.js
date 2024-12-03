@@ -26,6 +26,7 @@ const shopify = shopifyApp({
       unstable_managedPricingSupport: true,
     },
     billing: undefined, // or replace with billingConfig above to enable example billing
+    isEmbeddedApp: true,
   },
   auth: {
     path: "/api/auth",
