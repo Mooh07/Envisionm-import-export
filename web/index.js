@@ -1,4 +1,6 @@
 // @ts-check
+import * as dotenv from "dotenv";
+dotenv.config();
 import { ordersDB } from "./database/orders.js";
 ordersDB.init(process.env.NODE_ENV != "production").then(async () => {
   if (process.env.NODE_ENV == "production") return;
@@ -19,9 +21,6 @@ ordersDB.init(process.env.NODE_ENV != "production").then(async () => {
   await ordersDB.listCustomersAndTheirOrders();
   return;
 });
-import * as dotenv from "dotenv";
-dotenv.config();
-console.log(process.env);
 
 import { join } from "path";
 import { readFileSync } from "fs";
@@ -46,7 +45,6 @@ const STATIC_PATH =
     ? `${process.cwd()}/frontend/dist`
     : `${process.cwd()}/frontend/`;
 
-console.log(ordersDB.db);
 const app = express();
 // cors()
 // app.use(cors());
