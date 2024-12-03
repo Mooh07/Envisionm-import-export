@@ -113,7 +113,7 @@ export default (app) => {
       scope:
         "read_locations,read_assigned_fulfillment_orders,read_customers,read_fulfillments,read_inventory,read_merchant_managed_fulfillment_orders,read_metaobjects,read_orders,read_products,read_third_party_fulfillment_orders,write_assigned_fulfillment_orders,write_customers,write_fulfillments,write_inventory,write_merchant_managed_fulfillment_orders,write_metaobjects,write_orders,write_third_party_fulfillment_orders",
       expires: undefined,
-      accessToken: "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",
+      accessToken: process.env.SHOPIFY_ACCESS_TOKEN_ADMIN,
       onlineAccessInfo: undefined,
     };
     const graphQlClient = new shopify.api.clients.Graphql({
