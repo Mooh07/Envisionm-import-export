@@ -27,8 +27,8 @@ import { join } from "path";
 import { readFileSync } from "fs";
 import express from "express";
 import serveStatic from "serve-static";
-// import shopifyWebhooks from "./routes/shopify-webhooks.js";
 import shopify from "./shopify.js";
+import shopifyWebhooks from "./routes/shopify-webhooks.js";
 import PrivacyWebhookHandlers from "./privacy.js";
 import {
   listOrders,
@@ -62,7 +62,7 @@ app.post(
   shopify.processWebhooks({ webhookHandlers: PrivacyWebhookHandlers })
 );
 
-// shopifyWebhooks(app);
+shopifyWebhooks(app);
 
 const addSessionShopToReqParams = async (req, res, next) => {
   const shop = "377a43-4.myshopify.com";
