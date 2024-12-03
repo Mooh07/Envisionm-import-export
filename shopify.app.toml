@@ -3,7 +3,7 @@
 client_id = "fdd0cc8068afd5955a747a4867daf923"
 name = "envisionm-import-export"
 handle = "envisionm-import-export"
-application_url = "https://pin-midnight-zum-duty.trycloudflare.com"
+application_url = "https://enviom.clance.com"
 embedded = true
 
 [build]
@@ -17,9 +17,9 @@ scopes = "read_assigned_fulfillment_orders,read_customers,read_fulfillments,read
 
 [auth]
 redirect_urls = [
-  "https://pin-midnight-zum-duty.trycloudflare.com/auth/callback",
-  "https://pin-midnight-zum-duty.trycloudflare.com/auth/shopify/callback",
-  "https://pin-midnight-zum-duty.trycloudflare.com/api/auth/callback"
+  "https://enviom.clance.com/auth/callback",
+  "https://enviom.clance.com/auth/shopify/callback",
+  "https://enviom.clance.com/api/auth/callback"
 ]
 
 [webhooks]

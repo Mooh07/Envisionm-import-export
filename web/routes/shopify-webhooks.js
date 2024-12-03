@@ -220,8 +220,8 @@ export default (app) => {
     "/api/webhooks/orderCreated",
     isValidShopifyWebHook,
     async (req, res) => {
-      await saveOrderDataToDatabase();
-      await tagManuallyFulfilledOrders();
+      await saveOrderDataToDatabase(req, res);
+      await tagManuallyFulfilledOrders(req, res);
     }
   );
 };
