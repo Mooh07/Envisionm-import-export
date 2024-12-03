@@ -3,30 +3,43 @@ import { ordersDB } from "../database/orders.js";
 import fs from "fs";
 import csv from "csv-parser";
 import shopify from "../shopify.js";
-export const listOrders = async (_req, res) => {
-  const {
-    orderNumbers,
-    allSelected,
-    currentPage,
-    maxPerPage,
-    startDate,
-    endDate,
-    name,
-    fulfillmentStatus,
-  } = _req.body;
-  let { data, hasMoreItems } = await ordersDB.listFilteredCustomersAndOrders({
-    // @ts-ignore
-    currentPage: parseInt(currentPage),
-    // @ts-ignore
-    maxPerPage: parseInt(maxPerPage),
-    orderNumbers: orderNumbers,
-    startDate: startDate,
-    endDate: endDate,
-    name: name,
-    fulfillmentStatus: fulfillmentStatus,
-  });
-  res.status(200).send({ orders: data, hasMoreItems: hasMoreItems });
+import {
+  getOrdersQuery,
+  getUpdateCustomerQuery,
+} from "../queriesGenerators.js";
+// Constants
+export const locationShippingInfo = {
+  Monroe: {
+    Address1: "1 Preshburg Blvd",
+    City: "Kiryas Joel",
+    State: "NY",
+    Zip: "10950",
+    location_id: "75969331397",
+  },
+  Monsey: {
+    Address1: "75 NY-59",
+    City: "monsey",
+    State: "NY",
+    Zip: "10952",
+    location_id: "75969265861",
+  },
+  Flushing: {
+    Address1: "579 Flushing Ave",
+    City: "Brooklyn",
+    State: "NY",
+    Zip: "11205",
+    location_id: "75969233093",
+  },
+  Wallabout: {
+    Address1: "271 Wallabout St",
+    City: "Brooklyn",
+    State: "NY",
+    Zip: "11206",
+    location_id: "75969298629",
+  },
 };
+// Helpers
+
 let csvWriterOrderShippingWriterGenerator = () => {
   return createObjectCsvWriter({
     append: false,
@@ -46,6 +59,10 @@ let csvWriterOrderShippingWriterGenerator = () => {
       {
         id: "Address1",
         title: "Address1",
+      },
+      {
+        id: "Zip",
+        title: "Zip",
       },
       {
         id: "Address2",
@@ -109,145 +126,50 @@ const readSkusCsvFile = (fileToRead) => {
       });
   });
 };
-const getOrdersQueryGenerator = (orders) => {
-  let getOrderQuery = `query {`;
-  orders.forEach((order, index) => {
-    getOrderQuery += `
-        order${index + 1}: order(id: "${order.order_graphql_admin_id}") {
-          name
-          shippingLine{
-              carrierIdentifier
-              source
-              code
-              id
-          }
-          customer{
-            id
-          }
-          tags
-          deliveryLocation: metafield(namespace: "custom", key:"delivery_location"){
-            value
-          }
-          isTrial: metafield(namespace: "custom", key:"is_this_trial"){
-            value
-          }
-          fulfillmentOrders (first:50) {
-              edges {
-                  node {
-                      id
-                       lineItems(first: 50){
-                         edges{
-                             node{
-                                 id
-                             }
-                         }
-                     }
-                  }
-                      
-              }
-          }
-          fulfillable
-          displayFulfillmentStatus
-          shippingAddress{
-              address1
-              address2
-              city
-              countryCodeV2
-              name
-              zip
-              province
-              provinceCode
-          }
-          lineItems(first:50){
-              nodes {
-                  sku
-                  quantity
-                  product{
-                    title
-                    id
-                  }
-              }
-          }
-        }
-      `;
-  });
-  getOrderQuery += `}`;
-  return getOrderQuery;
-};
-const getUpdateCustomerQuery = () => {
-  return `mutation updateCustomerMetafields($input: CustomerInput!) {
-  customerUpdate(input: $input) {
-    customer {
-      id
-    }
-    userErrors {
-      message
-      field
-    }
-  }
-}`;
-};
-const locationShippingInfo = {
-  Monroe: {
-    Address1: "1 Preshburg Blvd",
-    City: "Kiryas Joel",
-    State: "NY",
-    Zip: "10950",
-  },
-  Monsey: {
-    Address1: "75 NY-59",
-    City: "monsey",
-    State: "NY",
-    Zip: "10952",
-  },
-  Flushing: {
-    Address1: "579 Flushing Ave",
-    City: "Brooklyn",
-    State: "NY",
-    Zip: "11205",
-  },
-  Wallabout: {
-    Address1: "271 Wallabout St",
-    City: "Brooklyn",
-    State: "NY",
-    Zip: "11206",
-  },
-};
+
 const generateCSV = async (orders, graphQlClient) => {
-  const BATCH_SIZE = 100;
+  const BATCH_SIZE = 10;
   let finalCSVOrderArray = [];
   let finalCSVLineItemArray = [];
-  let skus = await readSkusCsvFile("./assets/Result_64.csv");
+  let ordersToBeFulfilled = [];
+
   for (let i = 0; i < orders.length; i += BATCH_SIZE) {
     const currentBatch = orders.slice(i, i + BATCH_SIZE);
-    const getOrdersQuery = getOrdersQueryGenerator(currentBatch);
+    const ordersQuery = getOrdersQuery(currentBatch);
     try {
-      const response = await graphQlClient.request(getOrdersQuery);
+      const response = await graphQlClient.request(ordersQuery);
       //   console.log(`Batch ${i / BATCH_SIZE + 1} response:`, response);
       Object.keys(response.data).forEach(async (key) => {
-        if (!response.data[key].fulfillable) return;
+        let orderQueryResponse = response.data[key];
+        console.log(orderQueryResponse);
+        if (!orderQueryResponse.fulfillable) {
+          ordersToBeFulfilled.push(orderQueryResponse.name.replace("#", ""));
+          return;
+        }
         let finalOrderCSVobj = {};
-        if (response.data[key].deliveryLocation.value == "Shipping") {
+        if (orderQueryResponse.deliveryLocation.value == "Shipping") {
           finalOrderCSVobj = {
-            "Ord#": response.data[key].name.replace("#", ""),
-            Ship_To_Name: response.data[key].shippingAddress.name,
-            Address1: response.data[key].shippingAddress.address1,
-            Address2: response.data[key].shippingAddress.address1
-              ? response.data[key].shippingAddress.address1
+            "Ord#": orderQueryResponse.name.replace("#", ""),
+            Ship_To_Name: orderQueryResponse.shippingAddress.name,
+            Address1: orderQueryResponse.shippingAddress.address1,
+            Address2: orderQueryResponse.shippingAddress.address1
+              ? orderQueryResponse.shippingAddress.address1
               : "",
-            City: response.data[key].shippingAddress.city,
-            State: response.data[key].shippingAddress.provinceCode,
-            "Ship Method": response.data[key]?.shippingLine?.code,
+            City: orderQueryResponse.shippingAddress.city,
+            State: orderQueryResponse.shippingAddress.provinceCode,
+            "Ship Method": orderQueryResponse?.shippingLine?.code,
+            Zip: orderQueryResponse.shippingAddress.zip,
+
             Store_ID: "envisionm.com",
             Store_Link: "Lenses@envisionoptical.com",
           };
         } else {
           finalOrderCSVobj = {
-            "Ord#": response.data[key].name.replace("#", ""),
-            Ship_To_Name: response.data[key].deliveryLocation.value,
+            "Ord#": orderQueryResponse.name.replace("#", ""),
+            Ship_To_Name: orderQueryResponse.deliveryLocation.value,
             Address2: "",
-            ...locationShippingInfo[response.data[key].deliveryLocation.value],
-            "Ship Method": "",
+            ...locationShippingInfo[orderQueryResponse.deliveryLocation.value],
+            "Ship Method": orderQueryResponse?.shippingLine?.code,
             Store_ID: "envisionm.com",
             Store_Link: "Lenses@envisionoptical.com",
           };
@@ -255,29 +177,33 @@ const generateCSV = async (orders, graphQlClient) => {
         finalCSVOrderArray.push(finalOrderCSVobj);
         let tagsUpdateValues = [];
         let line = 0;
-        response.data[key].tags.forEach((tag, index) => {
-          if (!tag.includes("right eye") && !tag.includes("left eye")) return;
-          line = line + 1;
-
-          let [product_id, sku, eye, quantity] = tag.split(":");
-          let correspondingProduct = response.data[key].lineItems.nodes
-            .map((lineItem) => lineItem.product)
-            .filter((product) => {
-              let ID = product.id.replace("gid://shopify/Product/", "");
-              return ID == product_id;
-            })[0];
-          if (!correspondingProduct) {
-            // TODO: handle when product doesn't exist
-            return;
-          }
-
-          let power = skus[correspondingProduct.title][sku].power;
-          let BC = skus[correspondingProduct.title][sku].BC;
-          let diameter = skus[correspondingProduct.title][sku].diameter;
-          let Cylinder = skus[correspondingProduct.title][sku].Cylinder;
-          let Axis = skus[correspondingProduct.title][sku].Axis;
-          let ADD = skus[correspondingProduct.title][sku].ADD;
-
+        orderQueryResponse.lineItems.nodes.forEach(async (lineItem) => {
+          let [
+            { value: power },
+            { value: diameter },
+            { value: BC },
+            { value: Cylinder },
+            { value: Axis },
+            { value: ADD },
+            { value: sku },
+            { value: eye },
+          ] = lineItem.customAttributes;
+          finalCSVLineItemArray.push({
+            "Ord#": orderQueryResponse.name.replace("#", ""),
+            Quantity: lineItem.quantity,
+            UPC: sku,
+            Description: eye == "Left" ? "Right Eye (OD)" : "Left Eye (OS)",
+            power: power == "@" ? "" : power,
+            BC: BC == "@" ? "" : BC,
+            DIAMETER: diameter == "@" ? "" : diameter,
+            CYL: Cylinder == "@" ? "" : Cylinder,
+            AXIS: Axis == "@" ? "" : Axis,
+            ADD: ADD == "@" ? "" : ADD,
+            Patient: orderQueryResponse.shippingAddress.name,
+            "Line#": line,
+          });
+          const customerUpdateQuery = getUpdateCustomerQuery();
+          let customerID = orderQueryResponse.customer.id;
           let eyeTag = `${eye}: power= ${power ? power : "@"} & BC= ${
             BC ? BC : "@"
           } & diameter= ${diameter ? diameter : "@"} & cylinder= ${
@@ -285,36 +211,19 @@ const generateCSV = async (orders, graphQlClient) => {
           } & axis= ${Axis ? Axis : "@"} & ADD= ${ADD ? ADD : "@"}`;
 
           tagsUpdateValues.push(eyeTag);
-
-          finalCSVLineItemArray.push({
-            "Ord#": response.data[key].name.replace("#", ""),
-            Quantity: quantity,
-            UPC: sku,
-            Description: eye == "left eye" ? "Right Eye (OD)" : "Left Eye (OS)",
-            power: power,
-            BC: BC,
-            DIAMETER: diameter,
-            CYL: Cylinder,
-            AXIS: Axis,
-            ADD: ADD,
-            Patient: response.data[key].shippingAddress.name,
-            "Line#": line,
-          });
+          const customerUpdateVariables = {
+            input: {
+              id: customerID,
+              tags: tagsUpdateValues,
+            },
+          };
+          const customerUpdateResponse = await graphQlClient.request(
+            customerUpdateQuery,
+            {
+              variables: customerUpdateVariables,
+            }
+          );
         });
-        const customerUpdateQuery = getUpdateCustomerQuery();
-        let customerID = response.data[key].customer.id;
-        const customerUpdateVariables = {
-          input: {
-            id: customerID,
-            tags: tagsUpdateValues,
-          },
-        };
-        const customerUpdateResponse = await graphQlClient.request(
-          customerUpdateQuery,
-          {
-            variables: customerUpdateVariables,
-          }
-        );
         // console.log(customerUpdateResponse);
       });
       //   console.log(finalCSVOrderArray);
@@ -322,6 +231,7 @@ const generateCSV = async (orders, graphQlClient) => {
       console.error(`Error in batch ${i / BATCH_SIZE + 1}:`, error);
     }
   }
+  await ordersDB.setOrdersToFulfilled(ordersToBeFulfilled);
 
   csvWriterOrderShippingWriterGenerator()
     .writeRecords(finalCSVOrderArray)
@@ -333,35 +243,6 @@ const generateCSV = async (orders, graphQlClient) => {
     .then(() => {
       console.log("done writing line items csv");
     });
-};
-
-export const queryProductsAndGenerateCSV = async (_req, res) => {
-  const {
-    ordersNumbersToBeFiltered,
-    allSelected,
-    currentPage,
-    maxPerPage,
-    startDate,
-    endDate,
-    name,
-    fulfillmentStatus,
-  } = _req.body;
-  if (allSelected) {
-    var result = await ordersDB.listFilteredCustomersAndOrders({
-      startDate,
-      endDate,
-      name: name,
-      fulfillmentStatus: fulfillmentStatus,
-    });
-  } else
-    var result = await ordersDB.listFilteredCustomersAndOrders({
-      orderNumbers: ordersNumbersToBeFiltered,
-    });
-  const graphQlClient = new shopify.api.clients.Graphql({
-    session: res.locals.shopify.session,
-  });
-  await generateCSV(result.data, graphQlClient);
-  res.status(200).send({ success: true });
 };
 const fulfillOrders = async (orders, ordersToFUlfillMap, graphQlClient) => {
   const BATCH_SIZE = 100;
@@ -427,6 +308,64 @@ const fulfillOrders = async (orders, ordersToFUlfillMap, graphQlClient) => {
     }
   }
 };
+
+// Routes
+export const listOrders = async (_req, res) => {
+  const {
+    orderNumbers,
+    allSelected,
+    currentPage,
+    maxPerPage,
+    startDate,
+    endDate,
+    name,
+    fulfillmentStatus,
+  } = _req.body;
+  let { data, hasMoreItems } = await ordersDB.listFilteredCustomersAndOrders({
+    // @ts-ignore
+    currentPage: parseInt(currentPage),
+    // @ts-ignore
+    maxPerPage: parseInt(maxPerPage),
+    orderNumbers: orderNumbers,
+    startDate: startDate,
+    endDate: endDate,
+    name: name,
+    fulfillmentStatus: fulfillmentStatus,
+  });
+  res.status(200).send({ orders: data, hasMoreItems: hasMoreItems });
+};
+
+export const queryProductsAndGenerateCSV = async (_req, res) => {
+  const {
+    ordersNumbersToBeFiltered,
+    allSelected,
+    currentPage,
+    maxPerPage,
+    startDate,
+    endDate,
+    name,
+    fulfillmentStatus,
+  } = _req.body;
+  if (allSelected) {
+    var result = await ordersDB.listFilteredCustomersAndOrders({
+      startDate,
+      endDate,
+      name: name,
+      fulfillmentStatus: fulfillmentStatus,
+    });
+  } else
+    var result = await ordersDB.listFilteredCustomersAndOrders({
+      orderNumbers: ordersNumbersToBeFiltered,
+    });
+  console.log(res.locals.shopify.session);
+
+  const graphQlClient = new shopify.api.clients.Graphql({
+    session: res.locals.shopify.session,
+  });
+  await generateCSV(result.data, graphQlClient);
+  res.status(200).send({ success: true });
+};
+
 export const queryProductsAndSetFulfilled = async (_req, res) => {
   const { ordersToFUlfillMap } = _req.body;
   let orderNumbers = Object.keys(ordersToFUlfillMap);

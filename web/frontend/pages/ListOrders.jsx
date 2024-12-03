@@ -29,6 +29,7 @@ function IndexTableWithViewsSearchFilterSorting({
   setQueryInfo,
   queryInfo,
   hasMoreItems,
+  refetchOrders,
 }) {
   const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
   const [itemStrings, setItemStrings] = useState(["All"]);
@@ -258,6 +259,7 @@ function IndexTableWithViewsSearchFilterSorting({
               "Content-Type": "application/json",
             },
           });
+          refetchOrders();
           shopify.toast.show(
             "Finished generating files, please click repsective buttons to download them",
             { duration: 1000 * 5 }
@@ -298,7 +300,7 @@ function IndexTableWithViewsSearchFilterSorting({
       >
         <IndexTable.Cell>
           <Link
-            url={`https://admin.shopify.com/store/377a43-4/orders/${order_graphql_admin_id.replace(
+            url={`https://admin.shopify.com/store/envisionm/orders/${order_graphql_admin_id.replace(
               "gid://shopify/Order/",
               ""
             )}`}
@@ -498,11 +500,24 @@ const ListOrders = () => {
           {ordersToFUlfillMap && (
             <Button onClick={() => setOrdersToFulfilMap(null)}>CLEAR</Button>
           )}
-
-          <a href="/ordersShippment.csv" download="ordersShippment.csv">
+          <a
+            href={
+              process.env.NODE_ENV == "production"
+                ? "/ordersShippment.csv"
+                : "/assets/ordersShippment.csv"
+            }
+            download="ordersShippment.csv"
+          >
             <Button size="medium">Orders shippment</Button>
           </a>
-          <a href="/lineItemsCSV.csv" download="lineItemsCSV.csv">
+          <a
+            href={
+              process.env.NODE_ENV == "production"
+                ? "/lineItemsCSV.csv"
+                : "/assets/lineItemsCSV.csv"
+            }
+            download="lineItemsCSV.csv"
+          >
             <Button size="medium">Orders Line items</Button>
           </a>
           <div style={{ width: 40, height: 40 }}>
@@ -564,6 +579,7 @@ const ListOrders = () => {
         </ButtonGroup>
       </Card> */}
       <IndexTableWithViewsSearchFilterSorting
+        refetchOrders={refetchOrders}
         isLoadingOrders={isLoadingOrders || isRefetching}
         orders={data ? data.orders : []}
         setQueryInfo={setQueryInfo}

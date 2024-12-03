@@ -1,37 +1,19 @@
 // @ts-check
 ordersDB.init(process.env.NODE_ENV != "production").then(async () => {
-  return;
+  if (process.env.NODE_ENV == "production") return;
   await ordersDB.createCustomer({
     customer_email: "nvm2k213@gmail.com",
     full_name: "Tetbirt Mohamed Hassene",
-    customer_graphql_admin_id: "gid:/shopify/Customer/7588039196864",
+    customer_graphql_admin_id: "gid:/shopify/Customer/7907343990981",
   });
   await ordersDB.createOrder({
     created_at: "2024-10-29T20:37:43-04:00",
-    customer_graphql_admin_id: "gid:/shopify/Customer/7588039196864",
+    customer_graphql_admin_id: "gid:/shopify/Customer/7907343990981",
     fulfillment_status: "UNFULFILLED",
-    store_id: "clance.com",
-    store_link: "support@clance.com",
-    order_number: "#4213213",
-    order_graphql_admin_id: "gid:/shopify/Order/5749256093888",
-  });
-  await ordersDB.createOrder({
-    created_at: "2024-10-29T20:37:43-04:00",
-    customer_graphql_admin_id: "gid:/shopify/Customer/7588039196864",
-    fulfillment_status: "UNFULFILLED",
-    store_id: "clance.com",
-    store_link: "support@clance.com",
-    order_number: "#4213213222",
-    order_graphql_admin_id: "gid:/shopify/Order/5749256093888",
-  });
-  await ordersDB.createOrder({
-    created_at: "2024-10-29T20:37:43-04:00",
-    customer_graphql_admin_id: "gid:/shopify/Customer/7588039196864",
-    fulfillment_status: "UNFULFILLED",
-    store_id: "clance.com",
-    store_link: "support@clance.com",
-    order_number: "#4213213555",
-    order_graphql_admin_id: "gid:/shopify/Order/5749256093888",
+    store_id: "envisionm.com",
+    store_link: "lenses@envisionoptical.com",
+    order_number: "1015",
+    order_graphql_admin_id: "gid://shopify/Order/5591635099845",
   });
   await ordersDB.listCustomersAndTheirOrders();
   return;
@@ -45,7 +27,6 @@ import express from "express";
 import serveStatic from "serve-static";
 import shopifyWebhooks from "./routes/shopify-webhooks.js";
 import shopify from "./shopify.js";
-import productCreator from "./product-creator.js";
 import PrivacyWebhookHandlers from "./privacy.js";
 import {
   listOrders,
